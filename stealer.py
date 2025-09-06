@@ -75,7 +75,7 @@ async def handler(event):
 
     for combo in combos:
         gate = random.choice(GATES)   # random gate assign
-        msg = f"{BOT_NAME}\n{gate} {combo}"
+        msg = f"{gate} {combo}"       # only gate + combo (no bot name above)
         await client.send_message(TARGET_GROUP, msg)
         print(f"Forwarded with {gate}:", msg)
 
@@ -88,3 +88,4 @@ async def main():
 with client:
     client.loop.run_until_complete(main())
     client.run_until_disconnected()
+    
