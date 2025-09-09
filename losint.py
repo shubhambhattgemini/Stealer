@@ -1,13 +1,13 @@
 from telethon import TelegramClient, events
-import json
 import asyncio
+import re
 
 # ================== CONFIG ==================
 API_ID = 25777114
 API_HASH = "83d41274e41d8330fc83876fb499432b"
 
 BOT_TOKEN = "8322952231:AAEN1_emKlD9BDajTcDodAapLgtNXe_8qUs"
-SEARCH_BOT = "@RolexxOsint_bot"
+SEARCH_BOT = "@h4ckerosint_bot"   # 👈 Using new bot
 
 # ================== CLIENTS ==================
 bot = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
@@ -27,39 +27,19 @@ def normalize_number(raw):
         num = num[2:]
     return num if len(num) == 10 and num.isdigit() else None
 
-# 🔹 Format JSON into text
-def format_data(data):
-    lines = []
-    for d in data:
-        mobile = d.get("mobile", "N/A")
-        name = d.get("name", "N/A")
-        fname = d.get("fname", "N/A")
-        address = d.get("address", "N/A").replace("!", ", ")
-        circle = d.get("circle", "N/A")
-        lines.append(
-            f"📱 {mobile} | {circle}\n"
-            f"👤 {name} | 👨‍👦 {fname}\n"
-            f"🏠 {address}\n"
-        )
-    return "\n──────────────\n".join(lines)
-
 # 🔹 Ask other bot using USER account
 async def ask_search_bot(query):
-    async with user.conversation(SEARCH_BOT, timeout=20) as conv:
+    async with user.conversation(SEARCH_BOT, timeout=30) as conv:
         await conv.send_message(query)
+        # wait for bot animation delay
+        await asyncio.sleep(6)
         resp = await conv.get_response()
-        raw = resp.text.strip()
-        print("📩 Raw Response:", raw)
+        text = resp.text.strip()
 
-        # Agar response "JSON" se start hota hai to pehli line skip karo
-        if raw.startswith("JSON"):
-            raw = raw.split("\n", 1)[1]
-
-        try:
-            return json.loads(raw)
-        except Exception as e:
-            print("❌ JSON Parse Error:", e)
-            return None
+        # ❌ Remove Status + Owner lines
+        text = re.sub(r"⚡ STATUS:.*", "", text, flags=re.DOTALL)
+        text = re.sub(r"Owner:.*", "", text, flags=re.DOTALL)
+        return text.strip()
 
 # ================== BOT HANDLERS ==================
 
@@ -86,32 +66,14 @@ async def number_handler(event):
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
     # Step 1: Ask for /num
-    js1 = await ask_search_bot(f"/num {number}")
-    if not js1 or "data" not in js1:
+    reply_text = await ask_search_bot(f"/num {number}")
+
+    if not reply_text:
         await event.reply("⚠️ No data found.")
         return
 
-    num_data = js1["data"]
-    aadhaar_id = None
-    if num_data and "id" in num_data[0]:
-        aadhaar_id = num_data[0]["id"]
-
-    # Step 2: Aadhaar Linked Numbers
-    aadhaar_data = []
-    if aadhaar_id:
-        js2 = await ask_search_bot(f"/aadhar {aadhaar_id}")
-        if js2 and "data" in js2:
-            aadhaar_data = js2["data"]
-
-    # Step 3: Merge + Format
-    reply_text = f"📱 Mobile Search Result for {number}\n\n"
-    reply_text += format_data(num_data)
-
-    if aadhaar_data:
-        reply_text += "\n\n──────────────\n🪪 Aadhaar Linked Numbers:\n\n"
-        reply_text += format_data(aadhaar_data)
-
-    await event.reply(reply_text)
+    # Final clean reply
+    await event.reply(f"📱 Mobile Search Result for {number}\n\n{reply_text}")
 
 # ================== START ==================
 async def main():
