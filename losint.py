@@ -5,17 +5,18 @@ import asyncio
 # ================== CONFIG ==================
 API_ID = 25777114
 API_HASH = "83d41274e41d8330fc83876fb499432b"
-BOT_TOKEN = "8322952231:AAEN1_emKlD9BDajTcDodAapLgtNXe_8qUs"
 
+BOT_TOKEN = "8322952231:AAEN1_emKlD9BDajTcDodAapLgtNXe_8qUs"
 SEARCH_BOT = "@RolexxOsint_bot"
 
-# ================== CLIENT SETUP ==================
-# If you provide BOT_TOKEN → bot login
-# Else → user login (phone number)
-if BOT_TOKEN:
-    client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-else:
-    client = TelegramClient('user_session', API_ID, API_HASH)
+# ================== CLIENTS ==================
+bot = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+user = TelegramClient("user_session", API_ID, API_HASH)  # OTP login hoga
+
+# 🔹 Ensure user login once
+async def init_user():
+    await user.start()  # pehli baar OTP puchega
+    print("✅ User Account Logged In Successfully")
 
 # 🔹 Number Normalizer
 def normalize_number(raw):
@@ -42,9 +43,9 @@ def format_data(data):
         )
     return "\n──────────────\n".join(lines)
 
-# 🔹 Ask other bot and wait for reply
-async def ask_search_bot(client, query):
-    async with client.conversation(SEARCH_BOT, timeout=20) as conv:
+# 🔹 Ask other bot using USER account
+async def ask_search_bot(query):
+    async with user.conversation(SEARCH_BOT, timeout=20) as conv:
         await conv.send_message(query)
         resp = await conv.get_response()
         try:
@@ -53,8 +54,8 @@ async def ask_search_bot(client, query):
         except:
             return None
 
-# ================== HANDLER ==================
-@client.on(events.NewMessage(pattern=r'^\+?\d[\d\s]{9,}$'))
+# ================== BOT HANDLER ==================
+@bot.on(events.NewMessage(pattern=r'^\+?\d[\d\s]{9,}$'))
 async def handler(event):
     raw_num = event.text.strip()
     number = normalize_number(raw_num)
@@ -66,7 +67,7 @@ async def handler(event):
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
     # Step 1: Ask for /num
-    js1 = await ask_search_bot(client, f"/num {number}")
+    js1 = await ask_search_bot(f"/num {number}")
     if not js1 or "data" not in js1:
         await event.reply("⚠️ No data found.")
         return
@@ -76,10 +77,10 @@ async def handler(event):
     if num_data and "id" in num_data[0]:
         aadhaar_id = num_data[0]["id"]
 
-    # Step 2: If Aadhaar ID found → fetch Aadhaar linked numbers
+    # Step 2: Aadhaar Linked Numbers
     aadhaar_data = []
     if aadhaar_id:
-        js2 = await ask_search_bot(client, f"/aadhar {aadhaar_id}")
+        js2 = await ask_search_bot(f"/aadhar {aadhaar_id}")
         if js2 and "data" in js2:
             aadhaar_data = js2["data"]
 
@@ -94,5 +95,11 @@ async def handler(event):
     await event.reply(reply_text)
 
 # ================== START ==================
-print("✅ Client Started...")
-client.run_until_disconnected()
+async def main():
+    await init_user()  # OTP login yahin hoga
+    print("✅ Bot + User Session Started")
+    await bot.run_until_disconnected()
+
+with bot:
+    bot.loop.run_until_complete(main())
+    
