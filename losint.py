@@ -1,5 +1,4 @@
-from telethon import TelegramClient, events, Button
-import json
+from telethon import TelegramClient, events
 import asyncio
 
 # ================== CONFIG ==================
@@ -14,29 +13,29 @@ bot = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 user = TelegramClient("user_session", API_ID, API_HASH)
 
 async def init_user():
-    await user.start()  # Pehli baar OTP maangega
+    await user.start()  # pehli baar OTP maangega
     print("✅ User Account Logged In Successfully")
 
-# 🔹 Ask crazy_num_info_bot
+# 🔹 Proper Flow Function
 async def query_crazy_bot(number):
     async with user.conversation(SEARCH_BOT, timeout=40) as conv:
-        # Step 1 → Send search command
+        # Step 1 → 🔎 Search {number}
         await conv.send_message(f"🔎 Search {number}")
         first = await conv.get_response()
 
-        # Step 2 → Click "Number Info Search" button
+        # Step 2 → click second button (Number Info Search)
         if first.buttons:
             try:
-                await first.click(1)  # 0 = Aadhaar Info, 1 = Number Info
+                await first.click(1)  # 0 = Aadhaar, 1 = Number Info
             except:
-                return "❌ Could not click button"
+                return "❌ Button click failed"
 
-        # Step 3 → Wait for "Send Number" prompt
+        # Step 3 → wait for "Send Number" prompt
         second = await conv.get_response()
         if "Send Number" not in second.text:
-            return "❌ Unexpected response from bot"
+            return f"⚠️ Unexpected response: {second.text}"
 
-        # Step 4 → Send the number without +91
+        # Step 4 → send number (without +91)
         await conv.send_message(number)
         final = await conv.get_response()
 
@@ -48,8 +47,11 @@ async def handler(event):
     number = event.text.strip()
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
-    data = await query_crazy_bot(number)
-    await event.reply(f"📊 Result for {number}:\n\n{data}")
+    try:
+        data = await query_crazy_bot(number)
+        await event.reply(f"📊 Result for {number}:\n\n{data}")
+    except Exception as e:
+        await event.reply(f"❌ Error: {str(e)}")
 
 # ================== START ==================
 async def main():
