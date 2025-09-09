@@ -1,6 +1,5 @@
-from telethon import TelegramClient, events, Button
+from telethon import TelegramClient, events
 import json
-import re
 import asyncio
 
 # ================== CONFIG ==================
@@ -10,9 +9,13 @@ BOT_TOKEN = "8322952231:AAEN1_emKlD9BDajTcDodAapLgtNXe_8qUs"
 
 SEARCH_BOT = "@RolexxOsint_bot"
 
-# ================== CLIENT ==================
-bot = TelegramClient('mainbot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-
+# ================== CLIENT SETUP ==================
+# If you provide BOT_TOKEN → bot login
+# Else → user login (phone number)
+if BOT_TOKEN:
+    client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+else:
+    client = TelegramClient('user_session', API_ID, API_HASH)
 
 # 🔹 Number Normalizer
 def normalize_number(raw):
@@ -22,7 +25,6 @@ def normalize_number(raw):
     elif num.startswith("91") and len(num) == 12:
         num = num[2:]
     return num if len(num) == 10 and num.isdigit() else None
-
 
 # 🔹 Format JSON into text
 def format_data(data):
@@ -40,7 +42,6 @@ def format_data(data):
         )
     return "\n──────────────\n".join(lines)
 
-
 # 🔹 Ask other bot and wait for reply
 async def ask_search_bot(client, query):
     async with client.conversation(SEARCH_BOT, timeout=20) as conv:
@@ -52,9 +53,8 @@ async def ask_search_bot(client, query):
         except:
             return None
 
-
 # ================== HANDLER ==================
-@bot.on(events.NewMessage(pattern=r'^\+?\d[\d\s]{9,}$'))
+@client.on(events.NewMessage(pattern=r'^\+?\d[\d\s]{9,}$'))
 async def handler(event):
     raw_num = event.text.strip()
     number = normalize_number(raw_num)
@@ -66,7 +66,7 @@ async def handler(event):
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
     # Step 1: Ask for /num
-    js1 = await ask_search_bot(bot, f"/num {number}")
+    js1 = await ask_search_bot(client, f"/num {number}")
     if not js1 or "data" not in js1:
         await event.reply("⚠️ No data found.")
         return
@@ -79,7 +79,7 @@ async def handler(event):
     # Step 2: If Aadhaar ID found → fetch Aadhaar linked numbers
     aadhaar_data = []
     if aadhaar_id:
-        js2 = await ask_search_bot(bot, f"/aadhar {aadhaar_id}")
+        js2 = await ask_search_bot(client, f"/aadhar {aadhaar_id}")
         if js2 and "data" in js2:
             aadhaar_data = js2["data"]
 
@@ -93,8 +93,6 @@ async def handler(event):
 
     await event.reply(reply_text)
 
-
 # ================== START ==================
-print("✅ Bot Started...")
-bot.run_until_disconnected()
-  
+print("✅ Client Started...")
+client.run_until_disconnected()
