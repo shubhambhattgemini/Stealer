@@ -1,5 +1,5 @@
-
-    from telethon import TelegramClient, events, Button
+from telethon import TelegramClient, events, Button
+import json
 import asyncio
 
 # ================== CONFIG ==================
@@ -14,13 +14,13 @@ bot = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 user = TelegramClient("user_session", API_ID, API_HASH)
 
 async def init_user():
-    await user.start()  # pehli baar OTP maangega
+    await user.start()  # Pehli baar OTP maangega
     print("✅ User Account Logged In Successfully")
 
 # 🔹 Ask crazy_num_info_bot
 async def query_crazy_bot(number):
     async with user.conversation(SEARCH_BOT, timeout=40) as conv:
-        # Step 1 → Send 🔎 Search <number>
+        # Step 1 → Send search command
         await conv.send_message(f"🔎 Search {number}")
         first = await conv.get_response()
 
@@ -46,10 +46,9 @@ async def query_crazy_bot(number):
 @bot.on(events.NewMessage(pattern=r'^\d{10}$'))
 async def handler(event):
     number = event.text.strip()
-
     await event.reply(f"🔍 Searching data for {number}... Please wait")
-    data = await query_crazy_bot(number)
 
+    data = await query_crazy_bot(number)
     await event.reply(f"📊 Result for {number}:\n\n{data}")
 
 # ================== START ==================
