@@ -1,7 +1,6 @@
 from telethon import TelegramClient, events
-import httpx
+import cloudscraper
 import re
-import asyncio
 
 # ================== CONFIG ==================
 API_ID = 25777114
@@ -14,6 +13,9 @@ API_KEY = "CHUTPAGLU"
 # ================== CLIENT ==================
 bot = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
+# 🔹 Scraper (Cloudflare bypass)
+scraper = cloudscraper.create_scraper()
+
 # 🔹 Number Normalizer
 def normalize_number(raw):
     num = raw.replace(" ", "").strip()
@@ -23,26 +25,21 @@ def normalize_number(raw):
         num = num[2:]
     return num if len(num) == 10 and num.isdigit() else None
 
-# 🔹 Fetch data from API (async httpx)
-async def fetch_data(number):
-    url = f"{API_URL}?key={API_KEY}&num={number}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10; Termux)",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Connection": "keep-alive"
-    }
+# 🔹 Fetch data from API
+def fetch_data(number):
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.get(url, headers=headers)
-            if r.status_code != 200:
-                return f"⚠️ API Error: HTTP {r.status_code}"
+        url = f"{API_URL}?key={API_KEY}&num={number}"
+        r = scraper.get(url, timeout=30)
 
-            text = r.text.strip()
+        if r.status_code != 200:
+            return f"⚠️ API Error: HTTP {r.status_code}"
 
-            # ❌ Remove unwanted lines (Owner line etc.)
-            text = re.sub(r"Owner:.*", "", text, flags=re.IGNORECASE)
+        text = r.text.strip()
 
-            return text.strip() if text else None
+        # ❌ Remove unwanted "Owner" line
+        text = re.sub(r"Owner:.*", "", text, flags=re.IGNORECASE)
+
+        return text if text else None
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
 
@@ -55,7 +52,7 @@ async def start_handler(event):
         "👋 Welcome!\n\n"
         "🔍 Just send me a mobile number (with or without +91).\n"
         "Example: `9821932771`\n\n"
-        "I will search details for you."
+        "I will search details for you using direct API."
     )
 
 # Handle numbers
@@ -71,7 +68,7 @@ async def number_handler(event):
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
     # Fetch data from API
-    reply_text = await fetch_data(number)
+    reply_text = fetch_data(number)
 
     if not reply_text:
         await event.reply("⚠️ No data found.")
@@ -81,5 +78,5 @@ async def number_handler(event):
     await event.reply(f"📱 Mobile Search Result for {number}\n\n{reply_text}")
 
 # ================== START ==================
-print("✅ Bot Started with Direct API (httpx + Termux friendly)")
+print("✅ Bot Started with Direct API (Cloudscraper bypass)")
 bot.run_until_disconnected()
