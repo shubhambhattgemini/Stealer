@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import asyncio
+import requests
 import re
 
 # ================== CONFIG ==================
@@ -7,16 +7,11 @@ API_ID = 25777114
 API_HASH = "83d41274e41d8330fc83876fb499432b"
 
 BOT_TOKEN = "8322952231:AAEN1_emKlD9BDajTcDodAapLgtNXe_8qUs"
-SEARCH_BOT = "@h4ckerosint_bot"   # 👈 Using new bot
+API_URL = "https://rolexxbhaiyaa.great-site.net/index.php"
+API_KEY = "CHUTPAGLU"
 
-# ================== CLIENTS ==================
+# ================== CLIENT ==================
 bot = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-user = TelegramClient("user_session", API_ID, API_HASH)  # OTP login hoga
-
-# 🔹 Ensure user login once
-async def init_user():
-    await user.start()  # pehli baar OTP puchega
-    print("✅ User Account Logged In Successfully")
 
 # 🔹 Number Normalizer
 def normalize_number(raw):
@@ -27,19 +22,22 @@ def normalize_number(raw):
         num = num[2:]
     return num if len(num) == 10 and num.isdigit() else None
 
-# 🔹 Ask other bot using USER account
-async def ask_search_bot(query):
-    async with user.conversation(SEARCH_BOT, timeout=30) as conv:
-        await conv.send_message(query)
-        # wait for bot animation delay
-        await asyncio.sleep(6)
-        resp = await conv.get_response()
-        text = resp.text.strip()
+# 🔹 Fetch data from API
+def fetch_data(number):
+    try:
+        url = f"{API_URL}?key={API_KEY}&num={number}"
+        r = requests.get(url, timeout=20)
+        if r.status_code != 200:
+            return None
 
-        # ❌ Remove Status + Owner lines
-        text = re.sub(r"⚡ STATUS:.*", "", text, flags=re.DOTALL)
-        text = re.sub(r"Owner:.*", "", text, flags=re.DOTALL)
-        return text.strip()
+        text = r.text.strip()
+
+        # ❌ Remove unwanted lines (Owner line etc.)
+        text = re.sub(r"Owner:.*", "", text, flags=re.IGNORECASE)
+
+        return text.strip() if text else None
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
 
 # ================== BOT HANDLERS ==================
 
@@ -65,8 +63,8 @@ async def number_handler(event):
 
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
-    # Step 1: Ask for /num
-    reply_text = await ask_search_bot(f"/num {number}")
+    # Fetch data from API
+    reply_text = fetch_data(number)
 
     if not reply_text:
         await event.reply("⚠️ No data found.")
@@ -76,11 +74,5 @@ async def number_handler(event):
     await event.reply(f"📱 Mobile Search Result for {number}\n\n{reply_text}")
 
 # ================== START ==================
-async def main():
-    await init_user()  # OTP login yahin hoga
-    print("✅ Bot + User Session Started")
-    await bot.run_until_disconnected()
-
-with bot:
-    bot.loop.run_until_complete(main())
-    
+print("✅ Bot Started with Direct API")
+bot.run_until_disconnected()
