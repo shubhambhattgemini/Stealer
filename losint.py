@@ -1,6 +1,7 @@
 from telethon import TelegramClient, events
-import requests
+import httpx
 import re
+import asyncio
 
 # ================== CONFIG ==================
 API_ID = 25777114
@@ -22,20 +23,26 @@ def normalize_number(raw):
         num = num[2:]
     return num if len(num) == 10 and num.isdigit() else None
 
-# 🔹 Fetch data from API
-def fetch_data(number):
+# 🔹 Fetch data from API (async httpx)
+async def fetch_data(number):
+    url = f"{API_URL}?key={API_KEY}&num={number}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; Termux)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Connection": "keep-alive"
+    }
     try:
-        url = f"{API_URL}?key={API_KEY}&num={number}"
-        r = requests.get(url, timeout=20)
-        if r.status_code != 200:
-            return None
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.get(url, headers=headers)
+            if r.status_code != 200:
+                return f"⚠️ API Error: HTTP {r.status_code}"
 
-        text = r.text.strip()
+            text = r.text.strip()
 
-        # ❌ Remove unwanted lines (Owner line etc.)
-        text = re.sub(r"Owner:.*", "", text, flags=re.IGNORECASE)
+            # ❌ Remove unwanted lines (Owner line etc.)
+            text = re.sub(r"Owner:.*", "", text, flags=re.IGNORECASE)
 
-        return text.strip() if text else None
+            return text.strip() if text else None
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
 
@@ -64,7 +71,7 @@ async def number_handler(event):
     await event.reply(f"🔍 Searching data for {number}... Please wait")
 
     # Fetch data from API
-    reply_text = fetch_data(number)
+    reply_text = await fetch_data(number)
 
     if not reply_text:
         await event.reply("⚠️ No data found.")
@@ -74,5 +81,5 @@ async def number_handler(event):
     await event.reply(f"📱 Mobile Search Result for {number}\n\n{reply_text}")
 
 # ================== START ==================
-print("✅ Bot Started with Direct API")
+print("✅ Bot Started with Direct API (httpx + Termux friendly)")
 bot.run_until_disconnected()
