@@ -25,7 +25,7 @@ TARGETS = [
     'bestfriend_Girls_Chatting_group',
     'openchatwithfriends', 
 ]
-MESSAGE_TEXT = "Free servise applikation download kre profile se"
+MESSAGE_TEXT = "Txt me boys here"
 BASE_INTERVAL_SECONDS = 36  # Base 36s 
 JITTER_SECONDS = 5         # random +/- jitter (0..5 seconds)
 SESSION_NAME = 'me_session'  # session file: me_session.session
