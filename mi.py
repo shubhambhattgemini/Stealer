@@ -14,9 +14,9 @@ from telethon import TelegramClient, errors, events
 
 # ---------- CONFIG (UPDATED TARGETS AND INTERVAL) ----------
 # *** NEW CONFIGURATION DETAILS ***
-api_id = 33994193
-api_hash = '20bc7909397286b60305bee39a61855c'
-phone_number = '+919668520441'  # <-- NEW phone number
+api_id = 37034112
+api_hash = '9e382c9a9ec218c46cdf29819618eeff'
+phone_number = '+919209149188'  # <-- NEW phone number
 # Provided group usernames (Targets remain the same):
 TARGETS = [
     'friends_circle_1908',
@@ -25,13 +25,13 @@ TARGETS = [
     'bestfriend_Girls_Chatting_group',
     'openchatwithfriends', 
 ]
-MESSAGE_TEXT = "Txt me boys here"
+MESSAGE_TEXT = "Baby mari prafile ao dekho bhut pyasi hu"
 BASE_INTERVAL_SECONDS = 36  # Base 36s 
 JITTER_SECONDS = 5         # random +/- jitter (0..5 seconds)
 SESSION_NAME = 'me_session'  # session file: me_session.session
 
 # *** NEW AUTO-FORWARD CONFIGURATION ***
-FORWARD_SOURCE_CHANNEL = 'VideoCallApk'
+FORWARD_SOURCE_CHANNEL = 'Free_ServiceApp'
 FORWARD_MESSAGE_ID = 3
 # ---------------------------------------------------------
 
